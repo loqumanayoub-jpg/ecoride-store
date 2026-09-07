@@ -25,6 +25,28 @@ const products = {
   ]
 };
 
+
+
+// Allow the admin preview to persist catalog edits in the same browser.
+// Production persistence should move to Supabase.
+try {
+  const adminOverrides = JSON.parse(localStorage.getItem('ecorideAdminProducts') || 'null');
+  if (Array.isArray(adminOverrides)) {
+    const byId = new Map(adminOverrides.map((item) => [item.id, item]));
+    Object.keys(products).forEach((group) => {
+      products[group] = products[group].map((item) => ({ ...item, ...(byId.get(item.id) || {}) }));
+    });
+    const existingIds = new Set(Object.values(products).flat().map((item) => item.id));
+    adminOverrides.filter((item) => !existingIds.has(item.id)).forEach((item) => {
+      const group = item.categoryKey || (item.category === 'Scooters' ? 'scooters' : item.category === 'Electric Bikes' ? 'ebikes' : item.category === 'Bicycles' ? 'bicycles' : 'parts');
+      if (!products[group]) products[group] = [];
+      products[group].push(item);
+    });
+  }
+} catch (error) {
+  // Ignore malformed local preview data and keep the original catalog.
+}
+
 const allProducts = Object.values(products).flat();
 const productIndex = new Map(allProducts.map((product) => [product.id, product]));
 const pageByCategory = {
